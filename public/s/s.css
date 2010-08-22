@@ -1,0 +1,28 @@
+body {
+  font-family: "helvetica", sans-serf;
+  text-align: center;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, .1);
+  -moz-text-stroke: 1px rgba(255, 255, 255, .1);
+  color: #555;}
+
+h1, h2 {
+  margin: 0;
+  font-size: 1.5em;
+  color: #343434;}
+
+h1 {
+  text-shadow: 1px 2px 2px #ddd;
+  font-size: 4em;}
+
+#articles  {
+  text-align: left;
+  margin: 0 auto;
+  width: 20em;}
+#articles  .article  {
+  margin: 1.5em;}
+#articles  .article  .created_at {
+  display: none;}
+#articles  .article  .created_at .title {
+  background-color: #eee;}
+#articles  .article  .created_at .title .body  {
+  background-color: #ffa;}

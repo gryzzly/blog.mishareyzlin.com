@@ -1,0 +1,11 @@
+h1 #{title}
+form( method: 'post')
+  div
+    p
+      span Title :
+      input( name: 'title', id: 'edit-article-title' )
+    p
+      span Body :
+      textarea( name: 'body', rows: 20, id: 'edit-article-body' )
+    p#edit-article-submit
+      input( type: 'submit', value: 'Send' )
