@@ -1,9 +1,20 @@
+// TODO: add authentication for admin http://wiki.github.com/ciaranj/connect-auth/creating-a-form-based-strategy
+
 /* -== DEFINING ==- */
 var express = require('express'),
     app = express.createServer(),
-    ArticleProvider = require('./articleprovider-memory').ArticleProvider,
+    mongoose = require('mongoose').Mongoose,
+    db = mongoose.connect('mongodb://localhost/blog-express-mongoose'),
     pub = __dirname + '/public';
     
+// db.dropDatabase - to drop DB;
+
+mongoose.model('Post', {
+  properties: ['title', 'slug', 'body', {'comments': ['person', 'comment', 'created_at']}, 'created_at']
+});
+
+var Post = db.model('Post');
+
 /* -== CONFIG ==- */
 app.configure(function(){
     app.use(express.methodOverride());
@@ -25,17 +36,15 @@ app.configure('production', function(){
 });
 
 /* -== APP ==- */
-var articleProvider = new ArticleProvider();
-
 app.get('/', function(req, res) {
-    articleProvider.findAll(function(error, articles) {
-        res.render('blogs_index', {
-            locals : {
-                title : 'Blog',
-                articles: articles
-            }
-        });
-    });
+  Post.find().sort([['date', 'descending']]).all(function(posts) {
+    res.render('blogs_index', {
+      locals : {
+        title : 'Blog',
+        articles: posts
+      }
+    })
+  });
 });
 
 app.get('/blog/new', function(req, res) {
@@ -47,11 +56,24 @@ app.get('/blog/new', function(req, res) {
 });
 
 app.post('/blog/new', function(req, res) {
-  articleProvider.save({
+  new Post({ 
     title: req.param('title'),
-    body: req.param('body')
-  }, function(error, articles) {
+    slug: req.param('slug'),
+    body: req.param('body'),
+    created_at: new Date()
+  }).save(function(){
     res.redirect('/');
+  });
+});
+
+app.get('/blog/:slug', function(req, res){
+  Post.find({ slug: req.params.slug }).first(function(post){
+    res.render('blog_post', {
+      locals: {
+        title: 'Blog',
+        post: post
+      }
+    });
   });
 });
 

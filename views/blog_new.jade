@@ -1,9 +1,11 @@
-h1 #{title}
 form( method: 'post')
   div
     p
-      span Title :
+      label( for: 'edit-article-title' ) Title
       input( name: 'title', id: 'edit-article-title' )
+    p
+      label( for: 'edit-slug' ) Slug
+      input( name: 'slug', id: 'edit-slug' )
     p
       span Body :
       textarea( name: 'body', rows: 20, id: 'edit-article-body' )

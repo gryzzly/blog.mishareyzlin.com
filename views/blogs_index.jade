@@ -1,7 +1,7 @@
-h1 #{title}
-#articles
+ul#articles
   - each article in articles
-    div.article
+    li.article
       p.created-at #{article.created_at}
-      h2.title #{article.title}
+      h2.title 
+        a(href: '/blog/'+article.slug, title='View login page') #{article.title}
       div.body #{article.body}
