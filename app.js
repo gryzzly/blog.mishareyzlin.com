@@ -6,14 +6,78 @@ var express = require('express'),
     mongoose = require('mongoose').Mongoose,
     db = mongoose.connect('mongodb://localhost/blog-express-mongoose'),
     pub = __dirname + '/public';
+
+/* -== SESSIONS ==- */
+
+// from http://github.com/ry/node_chat/blob/master/server.js
+var SESSION_TIMEOUT = 60 * 10 * 1000;
+var sessions = {};
+
+function createSession(nick) {
+  if (nick.length > 50) return null;
+  if (/[^\w_\w-^!]/.exec(nick)) return null;
+
+  for (var i in sessions) {
+    var session = sessions[i];
+    if (session && session.nick === nick) return null;
+  }
+
+  var session = {
+    nick: nick,
+    id: Math.floor(Math.random()*99999999999).toString(),
+    timestamp: new Date(),
+
+    poke: function() {
+      session.timestamp = new Date();
+    },
+
+    destroy: function() {
+      delete sessions[session.id];
+    }
+  }
+}
+
+// interval to kill off old sessions
+setInterval(function () {
+  var now = new Date();
+  for (var id in sessions) {
+    if (!sessions.hasOwnProperty(id)) continue;
+    var session = sessions[id];
+
+    if (now - session.timestamp > SESSION_TIMEOUT) {
+      session.destroy();
+    }
+  }
+}, 1000);
+
+
     
 // db.dropDatabase - to drop DB;
 
 mongoose.model('Post', {
-  properties: ['title', 'slug', 'body', {'comments': ['person', 'comment', 'created_at']}, 'created_at']
+  properties: [
+    'title', 
+    'slug', 
+    'body', 
+    {'comments': [
+      'person', 
+      'comment', 
+      'created_at'
+    ]}, 
+    'created_at'
+  ]
 });
 
-var Post = db.model('Post');
+mongoose.model('User',{
+  properties: [
+    'name',
+    'password',
+    'member_since'
+  ]
+});
+
+var Post = db.model('Post'),
+    User = db.model('User');
 
 /* -== CONFIG ==- */
 app.configure(function(){
@@ -44,6 +108,52 @@ app.get('/', function(req, res) {
         articles: posts
       }
     })
+  });
+});
+
+app.get('/login', function(req, res) {
+  res.render('login', {
+    locals: {
+      title: 'Login',
+      error: null
+    }
+  });
+});
+
+app.post('/login', function(req, res) {
+  var name = req.param('login'),
+      pass = req.param('password');
+
+  User.find({ name: name }).first(function(user){
+    if (user) {
+      if (pass == user.password) {
+        var session = createSession(user._id);
+        if (session == null) {
+          res.send("Error, session == null returns true", 400);
+        }
+        res.redirect('/');
+      }
+      else {
+        res.render('login', {
+          locals: {
+            title: 'Login',
+            error: {
+              type: 'password'
+            }
+          }
+        });
+      }
+    } else {
+      res.render('login', {
+        locals: {
+          title: 'Login',
+          error: {
+            type: 'name', 
+            data: req.param('login')
+          }
+        }
+      });
+    }
   });
 });
 
