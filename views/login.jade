@@ -2,11 +2,10 @@ div
   form(method: 'post')
     div 
       - if (error)
-        p.error 
         - if (error.type == 'name') 
-          No users with name “#{ error.data }” were found in our database.
+          p.error No users with name “#{ error.data }” were found in our database.
         - if (error.type == 'password')
-          The password doesn't match.
+          p.error The password doesn't match.
       p
         label(for: 'login') Login
         input(id: 'login', name: 'login') 

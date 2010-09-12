@@ -1,4 +1,4 @@
-// TODO: add authentication for admin http://wiki.github.com/ciaranj/connect-auth/creating-a-form-based-strategy
+// TODO: use connect-session for sessions
 
 /* -== DEFINING ==- */
 var express = require('express'),
@@ -13,9 +13,9 @@ var express = require('express'),
 var SESSION_TIMEOUT = 60 * 10 * 1000;
 var sessions = {};
 
-function createSession(nick) {
-  if (nick.length > 50) return null;
-  if (/[^\w_\w-^!]/.exec(nick)) return null;
+function createSession(id) {
+  if (id.length > 50) return null;
+  if (/[^\w_\w-^!]/.exec(id)) return null;
 
   for (var i in sessions) {
     var session = sessions[i];
