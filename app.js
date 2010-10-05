@@ -6,51 +6,6 @@ var express = require('express'),
     mongoose = require('mongoose').Mongoose,
     db = mongoose.connect('mongodb://localhost/blog-express-mongoose'),
     pub = __dirname + '/public';
-
-/* -== SESSIONS ==- */
-
-// from http://github.com/ry/node_chat/blob/master/server.js
-var SESSION_TIMEOUT = 60 * 10 * 1000;
-var sessions = {};
-
-function createSession(id) {
-  if (id.length > 50) return null;
-  if (/[^\w_\w-^!]/.exec(id)) return null;
-
-  for (var i in sessions) {
-    var session = sessions[i];
-    if (session && session.nick === nick) return null;
-  }
-
-  var session = {
-    nick: nick,
-    id: Math.floor(Math.random()*99999999999).toString(),
-    timestamp: new Date(),
-
-    poke: function() {
-      session.timestamp = new Date();
-    },
-
-    destroy: function() {
-      delete sessions[session.id];
-    }
-  }
-}
-
-// interval to kill off old sessions
-setInterval(function () {
-  var now = new Date();
-  for (var id in sessions) {
-    if (!sessions.hasOwnProperty(id)) continue;
-    var session = sessions[id];
-
-    if (now - session.timestamp > SESSION_TIMEOUT) {
-      session.destroy();
-    }
-  }
-}, 1000);
-
-
     
 // db.dropDatabase - to drop DB;
 
@@ -83,6 +38,9 @@ var Post = db.model('Post'),
 app.configure(function(){
     app.use(express.methodOverride());
     app.use(express.bodyDecoder());
+    app.use(express.cookieDecoder());
+    //app.use(express.logger());
+    app.use(express.session());
     app.use(app.router);
     app.use(express.staticProvider(pub));
     /* enable SASS */
@@ -111,28 +69,38 @@ app.get('/', function(req, res) {
   });
 });
 
+
 app.get('/login', function(req, res) {
   res.render('login', {
     locals: {
       title: 'Login',
-      error: null
+      error: null,
+      // where do we come from
+      redirectUri: req.flash('redirect-from')
     }
   });
 });
 
 app.post('/login', function(req, res) {
   var name = req.param('login'),
-      pass = req.param('password');
-
+      pass = req.param('password'),
+      redirectUri = req.param('redirect-uri');
+  
   User.find({ name: name }).first(function(user){
+    // login matches db
     if (user) {
+      // password matches 
       if (pass == user.password) {
-        var session = createSession(user._id);
-        if (session == null) {
-          res.send("Error, session == null returns true", 400);
+        // initilize session
+        req.session.user_id = user._id;
+        if (redirectUri && redirectUri != '') {
+          res.redirect(redirectUri);
         }
-        res.redirect('/');
+        else {
+          res.redirect('/');
+        }
       }
+      // password doesn't match
       else {
         res.render('login', {
           locals: {
@@ -143,7 +111,9 @@ app.post('/login', function(req, res) {
           }
         });
       }
-    } else {
+    } 
+    // specified name doesn't match anything in db
+    else {
       res.render('login', {
         locals: {
           title: 'Login',
@@ -157,12 +127,25 @@ app.post('/login', function(req, res) {
   });
 });
 
-app.get('/blog/new', function(req, res) {
-  res.render('blog_new', {
-    locals: {
-      title: 'New Post'
-    }
+app.get('/logout', function(req, res) {
+  req.session.regenerate(function(err){
+    res.writeHead(302, { Location: '/' });
+    res.end();
   });
+});
+
+app.get('/blog/new', function(req, res) {
+  if (userLoggedIn(req)) {
+    res.render('blog_new', {
+      locals: {
+        title: 'New Post'
+      }
+    });
+  }
+  else {
+    req.flash('redirect-from', req.url);
+    res.redirect('/login');
+  }
 });
 
 app.post('/blog/new', function(req, res) {
@@ -177,7 +160,7 @@ app.post('/blog/new', function(req, res) {
 });
 
 app.get('/blog/:slug', function(req, res){
-  Post.find({ slug: req.params.slug }).first(function(post){
+  Post.find({ slug: req.params.slug }).first(function(post) {
     res.render('blog_post', {
       locals: {
         title: 'Blog',
@@ -186,6 +169,17 @@ app.get('/blog/:slug', function(req, res){
     });
   });
 });
+
+function userLoggedIn(req) {
+  var id = req.session.user_id || '';
+  if (id != '') {
+    return function() {
+      User.find({ _id: id }).first(function(user) {
+        return user ? true : false;
+      });
+    }
+  }
+}
 
 /* -== RUNNING SERVER ==- */
 app.listen(3000);
